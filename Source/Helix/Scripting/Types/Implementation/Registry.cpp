@@ -228,9 +228,10 @@ namespace helix::scripting
 
     ModuleId RegisterModule(StringView name, ModuleKind kind)
     {
-        if (FindModule(name).IsValid())
-            return ModuleId();
         Registry& r = R();
+        for (ModuleData* m : r.modules)
+            if (m && m->name == name)
+                return ModuleId();
         ModuleData* m = new ModuleData();
         m->name = String(name);
         m->info = {m->name, kind};
@@ -311,6 +312,11 @@ namespace helix::scripting
 
     // ------------------------------------------------------------------------------------------------- types
 
+    namespace
+    {
+        TypeId FindRegistered(StringView fullName);
+    }
+
     TypeId DeclareType(ModuleId module, StringView nameSpace, StringView name, TypeKind kind, TypeId base, u32 flags)
     {
         Registry& r = R();
@@ -318,7 +324,7 @@ namespace helix::scripting
         if (!m || name.Empty() || (base.IsValid() && !SlotOf(base)))
             return TypeId();
         String full = nameSpace.Empty() ? String(name) : Format("{}.{}", nameSpace, name);
-        if (FindType(full).IsValid())
+        if (FindRegistered(full).IsValid())
             return TypeId();
         u32 slot;
         if (!r.freeSlots.Empty())
@@ -375,15 +381,24 @@ namespace helix::scripting
         return MakeId(u32(primitive), 1);
     }
 
+    namespace
+    {
+        // By name, without asking the providers (registration itself checks names this way).
+        TypeId FindRegistered(StringView fullName)
+        {
+            Registry& r = R();
+            const u32* first = r.byName.Find(NameHash(fullName));
+            for (u32 at = first ? *first : 0; at; at = r.slots[at].next)
+                if (r.slots[at].used && r.slots[at].info.fullName == fullName)
+                    return MakeId(at, r.slots[at].generation);
+            return TypeId();
+        }
+    }
+
     TypeId FindType(StringView fullName)
     {
         RunProviders();
-        Registry& r = R();
-        const u32* first = r.byName.Find(NameHash(fullName));
-        for (u32 at = first ? *first : 0; at; at = r.slots[at].next)
-            if (r.slots[at].used && r.slots[at].info.fullName == fullName)
-                return MakeId(at, r.slots[at].generation);
-        return TypeId();
+        return FindRegistered(fullName);
     }
 
     TypeId ArrayOf(TypeId element)
