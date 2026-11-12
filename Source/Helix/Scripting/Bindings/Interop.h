@@ -24,9 +24,28 @@ namespace helix::scripting
 {
     // Objects cross the boundary as ids (0 is null). A module's root class (HX_CLASS(Root)) specializes this:
     //   static u64 ToId(const T* object);   static T* FromId(u64 id);   static TypeId TypeOf(const T* object);
-    // FromId is null for ids of destroyed objects; TypeOf is the object's dynamic type.
+    //   static u64& WrapperOf(T* object);
+    // FromId is null for ids of destroyed objects; TypeOf is the object's dynamic type; WrapperOf is the slot of the
+    // GC handle of the object's C# wrapper (0 without one), which the object lets go with ReleaseWrapper when it is
+    // destroyed.
     template <class T>
     struct ObjectHandles;
+
+    // Frees a C# wrapper's GC handle (through the function the C# runtime registered) and clears the slot.
+    void ReleaseWrapper(u64& slot);
+    // Registered by the C# runtime when it loads a module's bindings.
+    void SetManagedHandleRelease(void (*release)(u64 handle));
+
+    // A function with a user pointer: what C++ gives C# for an event handler or a delegate argument.
+    template <class Signature>
+    struct Callback;
+
+    template <class R, class... Args>
+    struct Callback<R(Args...)>
+    {
+        R (*function)(void* user, Args... args) = nullptr;
+        void* user = nullptr;
+    };
 
     // What a generated thunk answers: the call ran, the object it was called on is gone (or null), or an argument
     // that must not be null was.

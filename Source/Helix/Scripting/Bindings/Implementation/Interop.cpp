@@ -44,6 +44,21 @@ namespace helix::scripting
         LogChannel gBindingsLog{"Bindings"};
     }
 
+    namespace
+    {
+        void (*gRelease)(u64 handle) = nullptr;
+    }
+
+    void SetManagedHandleRelease(void (*release)(u64 handle)) { gRelease = release; }
+
+    void ReleaseWrapper(u64& slot)
+    {
+        u64 handle = slot;
+        slot = 0;
+        if (handle && gRelease)
+            gRelease(handle);
+    }
+
     void ReportBindingFailure(StringView what, i32 status)
     {
         const char* why = status == InteropMissingObject      ? "the object is missing (destroyed or null)"
