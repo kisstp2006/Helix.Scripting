@@ -17,6 +17,7 @@ reach its members the same way.
 | `Source/Helix/Scripting/Host/DotnetHost.h` | The .NET host of the desktop: `Start` / `Stop`, `LoadAssembly` into the engine's load context, `GetFunction` of UnmanagedCallersOnly methods, GC handles native code keeps; `FindDotnetRoots` |
 | `Source/Managed/Helix.Scripting.Runtime/` | Its managed side (C#): `Host.Initialize` and the entry points native code calls, the engine's `AssemblyLoadContext`, `Host.Log` / `Report` / `ToNative` / `FindExport` / `NativeFunctions` for managed code |
 | `Source/Helix/Scripting/Bindings/ObjectRef.h` | `ObjectRef<Root, T>`: a native object by its id with the reference's null semantics in C++ (`if (ref)`, `ref == nullptr` once destroyed) |
+| `Source/Helix/Scripting/Bindings/ScriptApi.h` | What the generated C++ script API stands on: `ScriptHandle` (an object's id), `ApiRef` / `ApiAs` / `ApiTypeOf` for generic members, `ApiString16`, the module's function table by index |
 | `Source/Helix/Scripting/Bindings/Marshal.h` | Values between C++ and Variants for generated invokers (objects with their dynamic type, arrays) |
 | `Source/Helix/Scripting/Scripts/NativeScript.h` | `NativeScriptClass`, `NativeScriptMethod`, `RegisterNativeScriptClass`: the C++ script classes generated registration hands to the engine (`SetNativeScriptHandler`) |
 

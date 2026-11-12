@@ -1,4 +1,5 @@
 #include <Helix/Scripting/Bindings/Interop.h>
+#include <Helix/Scripting/Bindings/ScriptApi.h>
 #include <Helix/Scripting/Types/TypeBuilder.h>
 
 #include <Helix/Core/Containers/Array.h>
@@ -189,5 +190,32 @@ namespace helix::scripting
     {
         Table& t = TableOf(module);
         return Span<void* const>(t.managed, t.managedCount);
+    }
+
+    ApiString16::ApiString16(StringView text)
+    {
+        data_.Reserve(text.Size());
+        for (usize i = 0; i < text.Size();)
+        {
+            u32 c = u8(text[i]);
+            usize n = c < 0x80 ? 1 : (c >> 5) == 0x6 ? 2 : (c >> 4) == 0xE ? 3 : (c >> 3) == 0x1E ? 4 : 1;
+            if (n > 1 && i + n <= text.Size())
+            {
+                c &= n == 2 ? 0x1Fu : n == 3 ? 0x0Fu : 0x07u;
+                for (usize k = 1; k < n; k++)
+                    c = (c << 6) | (u8(text[i + k]) & 0x3Fu);
+            }
+            else if (n > 1)
+                c = 0xFFFD, n = 1;
+            i += n;
+            if (c >= 0x10000)
+            {
+                c -= 0x10000;
+                data_.Push(char16_t(0xD800 + (c >> 10)));
+                data_.Push(char16_t(0xDC00 + (c & 0x3FF)));
+            }
+            else
+                data_.Push(char16_t(c));
+        }
     }
 }
