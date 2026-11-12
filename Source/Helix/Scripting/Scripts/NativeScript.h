@@ -35,6 +35,9 @@ namespace helix::scripting
         Span<const NativeScriptMethod> methods;
         // DefaultExecutionOrder (the tag argument Order).
         i32 executionOrder = 0;
+        // The class's serialized fields (its base script classes' first) through a visitor of fields known at run time
+        // (Helix.Serialization's DynamicVisitor); the object as its root class's address. Null without fields.
+        void (*transfer)(void* instance, void* visitor) = nullptr;
     };
 
     // The class and its methods are copied; names stay the module's (it lives as long as the class is registered).

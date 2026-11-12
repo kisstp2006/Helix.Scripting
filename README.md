@@ -35,6 +35,9 @@ reach its members the same way.
   method of a derived type hides a base method with the same parameters. Errors are text, never asserts.
 - Derives-from is a range test on depth first numbers over the bases; interfaces are searched along the bases.
 - The registry is changed on one thread at a time and can be read from any thread while it does not change.
+- Native script classes (`NativeScriptClass`): how an engine makes and copies objects of a C++ script class, its
+  methods by name, and its serialized fields through a transfer function over an opaque visitor (the engine gives it
+  Helix.Serialization's `DynamicVisitor`), so this library does not depend on a serialization library.
 
 - The .NET host finds the runtime itself (no nethost): the root it is given, `dotnet/` next to the executable,
   DOTNET_ROOT, HELIX_DOTNET_ROOT, the default install folders; the first with hostfxr and the framework that
