@@ -6,3 +6,5 @@ out/
 *.user
 CMakeUserPresets.json
 __pycache__/
+bin/
+obj/

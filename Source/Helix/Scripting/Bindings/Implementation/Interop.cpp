@@ -118,6 +118,40 @@ namespace helix::scripting
         return out;
     }
 
+    namespace
+    {
+        struct Export
+        {
+            String name;
+            const void* function;
+        };
+
+        Array<Export>& Exports()
+        {
+            static Array<Export> e;
+            return e;
+        }
+    }
+
+    void RegisterNativeExport(StringView name, const void* function)
+    {
+        for (Export& e : Exports())
+            if (e.name == name)
+            {
+                e.function = function;
+                return;
+            }
+        Exports().Push(Export{String(name), function});
+    }
+
+    const void* FindNativeExport(StringView name)
+    {
+        for (const Export& e : Exports())
+            if (e.name == name)
+                return e.function;
+        return nullptr;
+    }
+
     void RegisterNativeFunctions(StringView module, const void* const* table, u32 count)
     {
         Table& t = TableOf(module);

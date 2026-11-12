@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The managed side of the .NET host: loaded by Helix's native host into the default load context; it keeps the
+       engine's load context and the entry points native code calls. -->
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <TargetFramework>net11.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <RootNamespace>Helix.Scripting</RootNamespace>
+    <AssemblyName>Helix.Scripting.Runtime</AssemblyName>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <Deterministic>true</Deterministic>
+    <!-- A runtimeconfig.json next to the assembly, for the native host. -->
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <TieredPGO>true</TieredPGO>
+  </PropertyGroup>
+</Project>

@@ -14,6 +14,8 @@ reach its members the same way.
 | `Source/Helix/Scripting/Types/Invoke.h` | `FindMethod` with C#'s overload rules, `Invoke`, fields, properties and events by reflection, `CreateInstance` |
 | `Source/Helix/Scripting/Bindings/Tags.h` | The tags Helix.Bindgen reads in C++ headers (`HX_CLASS`, `HX_STRUCT`, `HX_ENUM`, `HX_INTERFACE`, `HX_FIELD`, `HX_PROPERTY`, `HX_FUNCTION`, `HX_EVENT`) |
 | `Source/Helix/Scripting/Bindings/Interop.h` | What generated bindings use: `ObjectHandles<Root>` (objects as ids), statuses, strings and arrays handed across, `EventHandler`, the function tables of modules, `ReportBindingFailure` |
+| `Source/Helix/Scripting/Host/DotnetHost.h` | The .NET host of the desktop: `Start` / `Stop`, `LoadAssembly` into the engine's load context, `GetFunction` of UnmanagedCallersOnly methods, GC handles native code keeps; `FindDotnetRoots` |
+| `Source/Managed/Helix.Scripting.Runtime/` | Its managed side (C#): `Host.Initialize` and the entry points native code calls, the engine's `AssemblyLoadContext`, `Host.Log` / `Report` / `ToNative` / `FindExport` / `NativeFunctions` for managed code |
 | `Source/Helix/Scripting/Bindings/Marshal.h` | Values between C++ and Variants for generated invokers (objects with their dynamic type, arrays) |
 
 ## Design
@@ -31,6 +33,13 @@ reach its members the same way.
 - Derives-from is a range test on depth first numbers over the bases; interfaces are searched along the bases.
 - The registry is changed on one thread at a time and can be read from any thread while it does not change.
 
+- The .NET host finds the runtime itself (no nethost): the root it is given, `dotnet/` next to the executable,
+  DOTNET_ROOT, HELIX_DOTNET_ROOT, the default install folders; the first with hostfxr and the framework that
+  `Helix.Scripting.Runtime.runtimeconfig.json` asks for. The hosting interface of hostfxr is declared in
+  `Host/Implementation/Hostfxr.h` from its documentation. The runtime starts once per process; `Stop` lets the
+  managed side go, `Start` brings it back. Exceptions never cross the boundary: the managed entries catch them and
+  log them with their stack through the native log. Android and the Web get hosts of their own.
+
 Release, Ryzen 7 3750H:
 
 | Benchmark | Result |
@@ -39,6 +48,10 @@ Release, Ryzen 7 3750H:
 | The same by name (`Invoke(type, "Hit", ...)`) | 89 ns |
 | A resolved float field read | 24 ns |
 | `FindType` by full name among 2000 types | 71 ns |
+| Runtime start, the managed side and a test assembly loaded (.NET 11) | 95 ms |
+| A call native to managed (UnmanagedCallersOnly) | 5.6-6.4 ns |
+| A call managed to native, with the GC transition | 4.7-6.6 ns |
+| The same with SuppressGCTransition (leaf calls) | 1.4-2.2 ns |
 
 ## Build
 
@@ -49,6 +62,8 @@ cmake --preset windows-debug
 cmake --build --preset windows-debug
 ctest --preset windows-debug
 ```
+
+The host tests need the .NET 11 SDK (found through HELIX_DOTNET_ROOT, DOTNET_ROOT or the path).
 
 ## License
 

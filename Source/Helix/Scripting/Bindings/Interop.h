@@ -101,6 +101,11 @@ namespace helix::scripting
         return InteropObject{ObjectHandles<Root>::ToId(object), ObjectHandles<Root>::TypeOf(object).value, 0};
     }
 
+    // Native functions managed code looks up by name (the hosts' resolvers of exports); registered by the module that
+    // has them, found without the system's symbol tables (the same on every platform, linked in or not).
+    void RegisterNativeExport(StringView name, const void* function);
+    const void* FindNativeExport(StringView name);
+
     // The function table a binary module's generated code exports for managed code, and the one managed code gives
     // back (the exports of its C# types for the C++ proxies), by module name.
     void RegisterNativeFunctions(StringView module, const void* const* table, u32 count);

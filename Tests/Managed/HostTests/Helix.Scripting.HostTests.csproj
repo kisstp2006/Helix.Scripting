@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Entry points the C++ host tests and benchmarks call, loaded into the engine's load context. -->
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <TargetFramework>net11.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AssemblyName>Helix.Scripting.HostTests</AssemblyName>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../../Source/Managed/Helix.Scripting.Runtime/Helix.Scripting.Runtime.csproj" />
+    <ProjectReference Include="../HostTestsDependency/Helix.Scripting.HostTestsDependency.csproj" />
+  </ItemGroup>
+</Project>
