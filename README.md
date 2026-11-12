@@ -12,6 +12,9 @@ reach its members the same way.
 | `Source/Helix/Scripting/Types/TypeBuilder.h` | Modules (`RegisterModule`, `UnloadModule`), type providers (`AddTypeProvider`: types registered on first lookup), `DeclareType`, `TypeBuilder`: how generated and hand written code registers types; `OffsetOf(&T::member)` (also for classes with virtual functions) |
 | `Source/Helix/Scripting/Types/Variant.h` | `Variant`: any member value with its exact type; C#'s implicit conversions and explicit ones for text |
 | `Source/Helix/Scripting/Types/Invoke.h` | `FindMethod` with C#'s overload rules, `Invoke`, fields, properties and events by reflection, `CreateInstance` |
+| `Source/Helix/Scripting/Bindings/Tags.h` | The tags Helix.Bindgen reads in C++ headers (`HX_CLASS`, `HX_STRUCT`, `HX_ENUM`, `HX_INTERFACE`, `HX_FIELD`, `HX_PROPERTY`, `HX_FUNCTION`, `HX_EVENT`) |
+| `Source/Helix/Scripting/Bindings/Interop.h` | What generated bindings use: `ObjectHandles<Root>` (objects as ids), statuses, strings and arrays handed across, `EventHandler`, the function tables of modules, `ReportBindingFailure` |
+| `Source/Helix/Scripting/Bindings/Marshal.h` | Values between C++ and Variants for generated invokers (objects with their dynamic type, arrays) |
 
 ## Design
 
