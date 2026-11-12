@@ -2,6 +2,7 @@
 #include <Helix/Scripting/Types/TypeBuilder.h>
 
 #include <Helix/Core/Containers/Array.h>
+#include <Helix/Core/Logging/Log.h>
 
 #include <cstring>
 
@@ -36,6 +37,21 @@ namespace helix::scripting
             t.module = String(module);
             return t;
         }
+    }
+
+    namespace
+    {
+        LogChannel gBindingsLog{"Bindings"};
+    }
+
+    void ReportBindingFailure(StringView what, i32 status)
+    {
+        const char* why = status == InteropMissingObject      ? "the object is missing (destroyed or null)"
+                          : status == InteropNullArgument     ? "a null argument where an object is needed"
+                          : status == InteropManagedException ? "the C# member threw"
+                          : status == InteropNotLoaded        ? "the other side's function table is not loaded"
+                                                              : "the call failed";
+        HX_LOG_ERROR(gBindingsLog, "{}: {} (status {})", what, why, status);
     }
 
     TypeId EventHandlerType()

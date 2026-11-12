@@ -13,6 +13,13 @@
 #define HX_BINDINGS_EXPORT extern "C" __attribute__((visibility("default")))
 #endif
 
+// Members that take no room (the property members of value handles).
+#if defined(_MSC_VER) && !defined(__clang__)
+#define HX_NO_UNIQUE_ADDRESS [[msvc::no_unique_address]]
+#else
+#define HX_NO_UNIQUE_ADDRESS [[no_unique_address]]
+#endif
+
 namespace helix::scripting
 {
     // Objects cross the boundary as ids (0 is null). A module's root class (HX_CLASS(Root)) specializes this:
@@ -28,7 +35,14 @@ namespace helix::scripting
         InteropOk = 0,
         InteropMissingObject = 1,
         InteropNullArgument = 2,
+        // A C# member threw (the exception is reported on the C# side).
+        InteropManagedException = 3,
+        // The function table of the other side was not handed over yet.
+        InteropNotLoaded = 4,
     };
+
+    // A failed call of generated bindings: logged as an error with the member's name.
+    void ReportBindingFailure(StringView what, i32 status);
 
     // An object handed to managed code: its id and its dynamic type (for the wrapper of the right class).
     struct InteropObject
@@ -42,6 +56,13 @@ namespace helix::scripting
     struct InteropString
     {
         const char* data = nullptr;
+        i32 size = 0;
+    };
+
+    // A string handed out by managed code: UTF-16 code units valid until the thread's next call that hands one out.
+    struct InteropString16
+    {
+        const char16_t* data = nullptr;
         i32 size = 0;
     };
 
