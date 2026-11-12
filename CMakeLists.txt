@@ -11,11 +11,10 @@ helix_add_library(helix_scripting ALIAS Scripting PUBLIC_DEPS Helix::Core Helix:
 
 # The managed side of the .NET host (desktop): built with the .NET SDK when there is one. HELIX_SCRIPTING_RUNTIME is
 # the path of Helix.Scripting.Runtime.dll (its runtimeconfig.json next to it); helix_scripting_runtime builds it.
+# The assembly is the same for every platform (the C# side of the engine references it); the desktop host loads it.
 set(scripting_managed_artifacts "${CMAKE_BINARY_DIR}/HelixScriptingManaged")
-if(HELIX_PLATFORM STREQUAL "windows" OR HELIX_PLATFORM STREQUAL "linux")
-    find_program(HELIX_DOTNET NAMES dotnet HINTS "$ENV{HELIX_DOTNET_ROOT}" "$ENV{DOTNET_ROOT}")
-endif()
-if(HELIX_DOTNET AND (HELIX_PLATFORM STREQUAL "windows" OR HELIX_PLATFORM STREQUAL "linux"))
+find_program(HELIX_DOTNET NAMES dotnet HINTS "$ENV{HELIX_DOTNET_ROOT}" "$ENV{DOTNET_ROOT}")
+if(HELIX_DOTNET)
     set(runtime_dir "${CMAKE_CURRENT_SOURCE_DIR}/Source/Managed/Helix.Scripting.Runtime")
     set(runtime_dll "${scripting_managed_artifacts}/bin/Helix.Scripting.Runtime/release/Helix.Scripting.Runtime.dll")
     file(GLOB runtime_sources CONFIGURE_DEPENDS "${runtime_dir}/*.cs" "${runtime_dir}/*.csproj")
@@ -32,8 +31,9 @@ endif()
 helix_add_test_suite(helix_scripting_tests DEPS Helix::Scripting)
 helix_add_benchmark_suite(helix_scripting_bench DEPS Helix::Scripting)
 
-# The host tests and benchmarks load a test assembly into the engine's load context.
-if(TARGET helix_scripting_runtime AND (TARGET helix_scripting_tests OR TARGET helix_scripting_bench))
+# The host tests and benchmarks load a test assembly into the engine's load context (the desktop host).
+if(TARGET helix_scripting_runtime AND (TARGET helix_scripting_tests OR TARGET helix_scripting_bench) AND
+   (HELIX_PLATFORM STREQUAL "windows" OR HELIX_PLATFORM STREQUAL "linux"))
     set(tests_dir "${CMAKE_CURRENT_SOURCE_DIR}/Tests/Managed")
     set(host_tests_dll "${scripting_managed_artifacts}/bin/Helix.Scripting.HostTests/release/Helix.Scripting.HostTests.dll")
     file(GLOB_RECURSE host_tests_sources CONFIGURE_DEPENDS "${tests_dir}/*.cs" "${tests_dir}/*.csproj")
