@@ -228,3 +228,24 @@ HX_TEST(Types, CreatingInstances)
     DestroyInstance(s.hero, h);
     HX_CHECK(CreateInstance(s.damageable) == nullptr);
 }
+
+namespace
+{
+    u32 gProvided = 0;
+
+    void ProvideLateTypes()
+    {
+        gProvided++;
+        ModuleId m = RegisterModule("Late", ModuleKind::NativeGame);
+        TypeBuilder(DeclareType(m, "Late", "Thing", TypeKind::Class)).Finish();
+    }
+}
+
+HX_TEST(Types, ProvidersRunBeforeTheFirstLookup)
+{
+    AddTypeProvider(&ProvideLateTypes);
+    HX_CHECK(gProvided == 0);
+    HX_CHECK(FindType("Late.Thing").IsValid() && gProvided == 1);
+    HX_CHECK(FindType("Late.Thing").IsValid() && FindModule("Late").IsValid() && gProvided == 1);
+    UnloadModule(FindModule("Late"));
+}

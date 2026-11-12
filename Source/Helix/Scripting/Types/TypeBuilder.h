@@ -27,6 +27,11 @@ namespace helix::scripting
         ModuleKind kind = ModuleKind::Engine;
     };
 
+    // A function that registers types when they are first looked for (types that register on first use, as the
+    // engine's classes do): every provider runs once, before a lookup by name or by module that comes after it was
+    // added. Safe to add from static initialization.
+    void AddTypeProvider(void (*provide)());
+
     ModuleId RegisterModule(StringView name, ModuleKind kind);
     ModuleId FindModule(StringView name);
     // Null for modules that were unloaded.

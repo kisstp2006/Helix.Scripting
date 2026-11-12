@@ -188,6 +188,42 @@ namespace helix::scripting
 
     using namespace detail;
 
+    // ------------------------------------------------------------------------------------------------- providers
+
+    namespace
+    {
+        struct Providers
+        {
+            Array<void (*)()> list = Array<void (*)()>();
+            usize ran = 0;
+            bool running = false;
+        };
+
+        Providers& P()
+        {
+            static Providers p;
+            return p;
+        }
+
+        // Runs the providers added since the last lookup (not again while one of them registers types).
+        void RunProviders()
+        {
+            Providers& p = P();
+            if (p.running || p.ran == p.list.Size())
+                return;
+            p.running = true;
+            while (p.ran < p.list.Size())
+                p.list[p.ran++]();
+            p.running = false;
+        }
+    }
+
+    void AddTypeProvider(void (*provide)())
+    {
+        if (provide)
+            P().list.Push(provide);
+    }
+
     // ------------------------------------------------------------------------------------------------- modules
 
     ModuleId RegisterModule(StringView name, ModuleKind kind)
@@ -204,6 +240,7 @@ namespace helix::scripting
 
     ModuleId FindModule(StringView name)
     {
+        RunProviders();
         Registry& r = R();
         for (u32 i = 0; i < r.modules.Size(); i++)
             if (r.modules[i] && r.modules[i]->name == name)
@@ -340,6 +377,7 @@ namespace helix::scripting
 
     TypeId FindType(StringView fullName)
     {
+        RunProviders();
         Registry& r = R();
         const u32* first = r.byName.Find(NameHash(fullName));
         for (u32 at = first ? *first : 0; at; at = r.slots[at].next)
@@ -390,6 +428,7 @@ namespace helix::scripting
 
     void TypesOfModule(ModuleId module, Array<TypeId>& out)
     {
+        RunProviders();
         out.Clear();
         ModuleData* m = ModuleOf(module);
         if (!m)

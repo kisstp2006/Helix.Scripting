@@ -9,7 +9,7 @@ reach its members the same way.
 | Path | Content |
 |---|---|
 | `Source/Helix/Scripting/Types/Type.h` | `TypeId`, `TypeKind`, `TypeInfo` and its members (`FieldInfo`, `PropertyInfo`, `MethodInfo`, `ParameterInfo`, `EventInfo`, `EnumValueInfo`, `AttributeInfo`), lookups, `IsAssignableFrom`, `TypeOf<T>()` |
-| `Source/Helix/Scripting/Types/TypeBuilder.h` | Modules (`RegisterModule`, `UnloadModule`), `DeclareType`, `TypeBuilder`: how generated and hand written code registers types; `OffsetOf(&T::member)` (also for classes with virtual functions) |
+| `Source/Helix/Scripting/Types/TypeBuilder.h` | Modules (`RegisterModule`, `UnloadModule`), type providers (`AddTypeProvider`: types registered on first lookup), `DeclareType`, `TypeBuilder`: how generated and hand written code registers types; `OffsetOf(&T::member)` (also for classes with virtual functions) |
 | `Source/Helix/Scripting/Types/Variant.h` | `Variant`: any member value with its exact type; C#'s implicit conversions and explicit ones for text |
 | `Source/Helix/Scripting/Types/Invoke.h` | `FindMethod` with C#'s overload rules, `Invoke`, fields, properties and events by reflection, `CreateInstance` |
 
