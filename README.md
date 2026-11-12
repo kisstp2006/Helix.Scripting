@@ -18,6 +18,7 @@ reach its members the same way.
 | `Source/Managed/Helix.Scripting.Runtime/` | Its managed side (C#): `Host.Initialize` and the entry points native code calls, the engine's `AssemblyLoadContext`, `Host.Log` / `Report` / `ToNative` / `FindExport` / `NativeFunctions` for managed code |
 | `Source/Helix/Scripting/Bindings/ObjectRef.h` | `ObjectRef<Root, T>`: a native object by its id with the reference's null semantics in C++ (`if (ref)`, `ref == nullptr` once destroyed) |
 | `Source/Helix/Scripting/Bindings/Marshal.h` | Values between C++ and Variants for generated invokers (objects with their dynamic type, arrays) |
+| `Source/Helix/Scripting/Scripts/NativeScript.h` | `NativeScriptClass`, `NativeScriptMethod`, `RegisterNativeScriptClass`: the C++ script classes generated registration hands to the engine (`SetNativeScriptHandler`) |
 
 ## Design
 
