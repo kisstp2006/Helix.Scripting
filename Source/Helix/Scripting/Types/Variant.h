@@ -151,7 +151,13 @@ namespace helix::scripting
     {
         using U = std::remove_cv_t<T>;
         Variant v;
-        if (!ConvertTo(TypeOf<U>(), v))
+        // An object pointer converts to the pointee's type (a base, an interface, or the type itself).
+        TypeId target;
+        if constexpr (std::is_pointer_v<U>)
+            target = TypeOf<std::remove_cv_t<std::remove_pointer_t<U>>>();
+        else
+            target = TypeOf<U>();
+        if (!ConvertTo(target, v))
             return false;
         if constexpr (std::is_same_v<U, bool>)
             out = v.AsBool();
