@@ -249,3 +249,53 @@ HX_TEST(Types, ProvidersRunBeforeTheFirstLookup)
     HX_CHECK(FindType("Late.Thing").IsValid() && FindModule("Late").IsValid() && gProvided == 1);
     UnloadModule(FindModule("Late"));
 }
+
+HX_TEST(Types, ASecondBuilderExtendsAType)
+{
+    struct Pair
+    {
+        i32 a = 1;
+        i32 b = 2;
+    };
+    ModuleId module = RegisterModule("Extended", ModuleKind::NativeGame);
+    TypeId attribute = DeclareType(module, "Extended", "MarkAttribute", TypeKind::Class);
+    TypeBuilder(attribute).Finish();
+    TypeId pair = DeclareType(module, "Extended", "Pair", TypeKind::Struct);
+    const TypeId i32Type = TypeOf<i32>();
+    Invoker getA = [](const void*, void* self, Span<const Variant>, Variant& r, String&) {
+        r = Variant::From(static_cast<Pair*>(self)->a);
+        return true;
+    };
+    Invoker getB = [](const void*, void* self, Span<const Variant>, Variant& r, String&) {
+        r = Variant::From(static_cast<Pair*>(self)->b);
+        return true;
+    };
+    TypeBuilder(pair)
+        .Size(u32(sizeof(Pair)), u32(alignof(Pair)))
+        .Attribute(attribute)
+        .Field("a", i32Type, u32(offsetof(Pair, a)))
+        .Method("GetA", i32Type, std::initializer_list<ParameterInfo>{}, getA)
+        .Property("A", i32Type, getA, nullptr)
+        .Finish();
+    // Other types' members in between: the extension moves the first members, its ranges stay whole.
+    TypeBuilder(DeclareType(module, "Extended", "Other", TypeKind::Struct)).Field("x", i32Type, 0u).Method("M", i32Type, std::initializer_list<ParameterInfo>{}, getA).Finish();
+    TypeBuilder(pair)
+        .Field("b", i32Type, u32(offsetof(Pair, b)))
+        .Method("GetB", i32Type, std::initializer_list<ParameterInfo>{}, getB)
+        .Property("B", i32Type, getB, nullptr)
+        .Attribute(attribute)
+        .Finish();
+    HX_CHECK(Fields(pair).Size() == 2 && Methods(pair).Size() == 4 && Properties(pair).Size() == 2 && Attributes(pair).Size() == 1);
+    Pair p;
+    String error;
+    Variant v;
+    HX_CHECK(GetMember(pair, "a", &p, v, error) && v.AsInt() == 1 && GetMember(pair, "b", &p, v, error) && v.AsInt() == 2);
+    HX_CHECK(GetMember(pair, "A", &p, v, error) && v.AsInt() == 1 && GetMember(pair, "B", &p, v, error) && v.AsInt() == 2);
+    HX_CHECK(Invoke(pair, "GetA", &p, Span<const Variant>(), v, error) && v.AsInt() == 1);
+    HX_CHECK(Invoke(pair, "GetB", &p, Span<const Variant>(), v, error) && v.AsInt() == 2);
+    const PropertyInfo* b = FindProperty(pair, "B");
+    HX_CHECK(b && MethodAt(pair, b->getter)->name == StringView("get_B"));
+    // The extension's attribute on its own property, the type's from the first builder.
+    HX_CHECK(Attributes(pair, b->attributes).Size() == 1 && Attributes(pair)[0].type == attribute);
+    UnloadModule(module);
+}

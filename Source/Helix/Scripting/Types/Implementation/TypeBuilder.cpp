@@ -231,19 +231,33 @@ namespace helix::scripting
             t.alignment = t.size;
         }
 
+        // A type finished before (members another builder gave it) keeps them: they are copied ahead of the new
+        // ones, so each kind stays one range.
         auto range = [](usize first, usize count) { return Range{u32(first), u32(count)}; };
+        const Range oldInterfaces = t.interfaces, oldFields = t.fields, oldMethods = t.methods, oldProperties = t.properties,
+                    oldEvents = t.events, oldEnumValues = t.enumValues, oldAttributes = t.attributes;
         u32 methodBase = u32(m->methods.Size());
-        t.interfaces = range(m->interfaces.Size(), interfaces_.Size());
+        auto moved = [&](u32 index) { return index == kNoMember ? kNoMember : index - oldMethods.first + methodBase; };
+
+        t.interfaces = range(m->interfaces.Size(), oldInterfaces.count + interfaces_.Size());
+        for (u32 i = 0; i < oldInterfaces.count; i++)
+            m->interfaces.Push(TypeId(m->interfaces[oldInterfaces.first + i]));
         for (TypeId i : interfaces_)
             m->interfaces.Push(i);
-        // Members, their names copied into the module; attribute ranges filled below.
-        t.fields = range(m->fields.Size(), fields_.Size());
+
+        t.fields = range(m->fields.Size(), oldFields.count + fields_.Size());
+        for (u32 i = 0; i < oldFields.count; i++)
+            m->fields.Push(FieldInfo(m->fields[oldFields.first + i]));
         for (FieldInfo f : fields_)
         {
             f.name = m->Intern(f.name);
             m->fields.Push(f);
         }
-        t.methods = range(m->methods.Size(), methods_.Size());
+
+        t.methods = range(m->methods.Size(), oldMethods.count + methods_.Size());
+        for (u32 i = 0; i < oldMethods.count; i++)
+            m->methods.Push(MethodInfo(m->methods[oldMethods.first + i]));
+        const u32 newMethodBase = methodBase + oldMethods.count;
         for (usize i = 0; i < methods_.Size(); i++)
         {
             MethodInfo mi = methods_[i];
@@ -256,58 +270,80 @@ namespace helix::scripting
             }
             m->methods.Push(mi);
         }
-        t.properties = range(m->properties.Size(), properties_.Size());
+
+        t.properties = range(m->properties.Size(), oldProperties.count + properties_.Size());
+        for (u32 i = 0; i < oldProperties.count; i++)
+        {
+            PropertyInfo p = m->properties[oldProperties.first + i];
+            p.getter = moved(p.getter);
+            p.setter = moved(p.setter);
+            m->properties.Push(p);
+        }
         for (PropertyInfo p : properties_)
         {
             p.name = m->Intern(p.name);
             if (p.getter != kNoMember)
-                p.getter += methodBase;
+                p.getter += newMethodBase;
             if (p.setter != kNoMember)
-                p.setter += methodBase;
+                p.setter += newMethodBase;
             m->properties.Push(p);
         }
-        t.events = range(m->events.Size(), events_.Size());
+
+        t.events = range(m->events.Size(), oldEvents.count + events_.Size());
+        for (u32 i = 0; i < oldEvents.count; i++)
+        {
+            EventInfo e = m->events[oldEvents.first + i];
+            e.add = moved(e.add);
+            e.remove = moved(e.remove);
+            e.raise = moved(e.raise);
+            m->events.Push(e);
+        }
         for (EventInfo e : events_)
         {
             e.name = m->Intern(e.name);
             for (u32* index : {&e.add, &e.remove, &e.raise})
                 if (*index != kNoMember)
-                    *index += methodBase;
+                    *index += newMethodBase;
             m->events.Push(e);
         }
-        t.enumValues = range(m->enumValues.Size(), enumValues_.Size());
+
+        t.enumValues = range(m->enumValues.Size(), oldEnumValues.count + enumValues_.Size());
+        for (u32 i = 0; i < oldEnumValues.count; i++)
+            m->enumValues.Push(EnumValueInfo(m->enumValues[oldEnumValues.first + i]));
         for (EnumValueInfo v : enumValues_)
         {
             v.name = m->Intern(v.name);
             m->enumValues.Push(v);
         }
 
-        // Attributes grouped by what they belong to, so each owner's are one range.
-        auto attach = [&](Target target, u32 index) {
-            Range r{u32(m->attributes.Size()), 0};
-            for (const Staged& s : attributes_)
+        // Attributes grouped by what they belong to, so each owner's are one range (the type's earlier ones first).
+        auto attach = [&](Target target, u32 index, Range keep) {
+            Range r{u32(m->attributes.Size()), keep.count};
+            for (u32 i = 0; i < keep.count; i++)
+                m->attributes.Push(AttributeInfo(m->attributes[keep.first + i]));
+            for (const Staged& st : attributes_)
             {
-                if (s.target != target || s.index != index)
+                if (st.target != target || st.index != index)
                     continue;
                 AttributeInfo a;
-                a.type = s.type;
-                a.args = Range{u32(m->arguments.Size()), u32(s.arguments.Size())};
-                for (const Variant& v : s.arguments)
+                a.type = st.type;
+                a.args = Range{u32(m->arguments.Size()), u32(st.arguments.Size())};
+                for (const Variant& v : st.arguments)
                     m->arguments.Push(v);
                 m->attributes.Push(a);
                 r.count++;
             }
             return r;
         };
-        t.attributes = attach(Target::Type, 0);
-        for (u32 i = 0; i < t.fields.count; i++)
-            m->fields[t.fields.first + i].attributes = attach(Target::Field, i);
-        for (u32 i = 0; i < t.methods.count; i++)
-            m->methods[t.methods.first + i].attributes = attach(Target::Method, i);
-        for (u32 i = 0; i < t.properties.count; i++)
-            m->properties[t.properties.first + i].attributes = attach(Target::Property, i);
-        for (u32 i = 0; i < t.events.count; i++)
-            m->events[t.events.first + i].attributes = attach(Target::Event, i);
+        t.attributes = attach(Target::Type, 0, oldAttributes);
+        for (u32 i = 0; i < fields_.Size(); i++)
+            m->fields[t.fields.first + oldFields.count + i].attributes = attach(Target::Field, i, Range{});
+        for (u32 i = 0; i < methods_.Size(); i++)
+            m->methods[t.methods.first + oldMethods.count + i].attributes = attach(Target::Method, i, Range{});
+        for (u32 i = 0; i < properties_.Size(); i++)
+            m->properties[t.properties.first + oldProperties.count + i].attributes = attach(Target::Property, i, Range{});
+        for (u32 i = 0; i < events_.Size(); i++)
+            m->events[t.events.first + oldEvents.count + i].attributes = attach(Target::Event, i, Range{});
         return type_;
     }
 }
