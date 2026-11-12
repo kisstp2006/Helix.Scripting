@@ -13,9 +13,10 @@ reach its members the same way.
 | `Source/Helix/Scripting/Types/Variant.h` | `Variant`: any member value with its exact type; C#'s implicit conversions and explicit ones for text |
 | `Source/Helix/Scripting/Types/Invoke.h` | `FindMethod` with C#'s overload rules, `Invoke`, fields, properties and events by reflection, `CreateInstance` |
 | `Source/Helix/Scripting/Bindings/Tags.h` | The tags Helix.Bindgen reads in C++ headers (`HX_CLASS`, `HX_STRUCT`, `HX_ENUM`, `HX_INTERFACE`, `HX_FIELD`, `HX_PROPERTY`, `HX_FUNCTION`, `HX_EVENT`) |
-| `Source/Helix/Scripting/Bindings/Interop.h` | What generated bindings use: `ObjectHandles<Root>` (objects as ids), statuses, strings and arrays handed across, `EventHandler`, the function tables of modules, `ReportBindingFailure` |
+| `Source/Helix/Scripting/Bindings/Interop.h` | What generated bindings use: `ObjectHandles<Root>` (objects as ids, the wrapper slot and `ReleaseWrapper`), `Callback<R(Args...)>`, statuses, strings and arrays handed across, `EventHandler`, the function tables of modules, `ReportBindingFailure` |
 | `Source/Helix/Scripting/Host/DotnetHost.h` | The .NET host of the desktop: `Start` / `Stop`, `LoadAssembly` into the engine's load context, `GetFunction` of UnmanagedCallersOnly methods, GC handles native code keeps; `FindDotnetRoots` |
 | `Source/Managed/Helix.Scripting.Runtime/` | Its managed side (C#): `Host.Initialize` and the entry points native code calls, the engine's `AssemblyLoadContext`, `Host.Log` / `Report` / `ToNative` / `FindExport` / `NativeFunctions` for managed code |
+| `Source/Helix/Scripting/Bindings/ObjectRef.h` | `ObjectRef<Root, T>`: a native object by its id with the reference's null semantics in C++ (`if (ref)`, `ref == nullptr` once destroyed) |
 | `Source/Helix/Scripting/Bindings/Marshal.h` | Values between C++ and Variants for generated invokers (objects with their dynamic type, arrays) |
 
 ## Design
