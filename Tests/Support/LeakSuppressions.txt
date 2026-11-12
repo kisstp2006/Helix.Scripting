@@ -1,0 +1,8 @@
+leak:libcoreclr.so
+leak:libclrjit.so
+leak:libhostfxr.so
+leak:libhostpolicy.so
+leak:libSystem.Native.so
+leak:System.Private.CoreLib.dll
+leak:System.Reflection.Metadata.dll
+leak:doublemapper

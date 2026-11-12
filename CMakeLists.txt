@@ -55,3 +55,10 @@ endif()
 if(TARGET helix_scripting_bench)
     target_include_directories(helix_scripting_bench PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Tests")
 endif()
+
+# The .NET runtime is never unloaded: what it allocated is still there when the process ends (its own memory, not
+# leaks of Helix), so LeakSanitizer is told about its modules.
+if(TEST helix_scripting_tests AND HELIX_ENABLE_ASAN AND HELIX_PLATFORM STREQUAL "linux")
+    set_tests_properties(helix_scripting_tests PROPERTIES
+                         ENVIRONMENT "LSAN_OPTIONS=suppressions=${CMAKE_CURRENT_SOURCE_DIR}/Tests/Support/LeakSuppressions.txt")
+endif()
