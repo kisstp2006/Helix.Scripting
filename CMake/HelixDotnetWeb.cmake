@@ -47,12 +47,24 @@ function(helix_scripting_web_executable target)
     <Reference Include=\"${HELIX_SCRIPTING_RUNTIME}\" />
 ${references}  </ItemGroup>
   <Import Project=\"Link.props\" Condition=\"Exists('Link.props')\" />
+  <PropertyGroup>
+    <!-- Folders of the disk in node (main.mjs, HELIX_MOUNTS). -->
+    <EmccExtraLDFlags>$(EmccExtraLDFlags) -lnodefs.js</EmccExtraLDFlags>
+  </PropertyGroup>
 </Project>
 ")
     file(WRITE "${work}/main.mjs"
-"// Runs the web app in node: the program's arguments, its exit code.
+"// Runs the web app in node: the program's arguments, its exit code. HELIX_MOUNTS=<folder>=<path>;... mounts folders
+// of the disk into the app's file system (NODEFS) before main.
 import { dotnet } from './_framework/dotnet.js';
-const { runMain } = await dotnet.withApplicationArguments(...process.argv.slice(2)).create();
+const mounts = (process.env.HELIX_MOUNTS || '').split(';').filter((m) => m.includes('=')).map((m) => m.split('='));
+const mount = (module) => {
+  for (const [folder, path] of mounts) {
+    module.FS.mkdirTree(path);
+    module.FS.mount(module.FS.filesystems.NODEFS, { root: folder }, path);
+  }
+};
+const { runMain } = await dotnet.withModuleConfig({ preRun: [mount] }).withApplicationArguments(...process.argv.slice(2)).create();
 process.exit(await runMain());
 ")
     set(stamp "${publish}/wwwroot/_framework/dotnet.js")
