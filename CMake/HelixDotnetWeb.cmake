@@ -71,6 +71,9 @@ process.exit(await runMain());
     add_custom_command(
         OUTPUT "${stamp}"
         COMMAND "${HELIX_DOTNET}" "${HELIX_CALL_SIGNATURES}" --out "${work}/CallSignatures.g.cs" "${HELIX_SCRIPTING_RUNTIME}" ${assemblies}
+        # The native link's tables (P/Invokes, interpreter wrappers) made again each time: the SDK's incremental build
+        # kept stale ones when only the assemblies changed.
+        COMMAND "${CMAKE_COMMAND}" -E rm -rf "${work}/obj/Release/net11.0/wasm"
         # Platform=AnyCPU: a Visual Studio environment sets Platform=x64, which browser-wasm refuses.
         COMMAND "${HELIX_DOTNET}" publish "${project}" -c Release -o "${publish}" -p:Platform=AnyCPU --nologo -v quiet
         COMMAND "${CMAKE_COMMAND}" -E copy "${work}/main.mjs" "${publish}/wwwroot/main.mjs"
