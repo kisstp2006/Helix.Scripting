@@ -13,6 +13,8 @@ namespace helix::scripting
     {
         thread_local Array<char> gStringBuffer;
         thread_local Array<u8> gArrayBuffer;
+        thread_local Array<char> gStringsBytes;
+        thread_local Array<InteropString> gStrings;
 
         struct Table
         {
@@ -99,6 +101,25 @@ namespace helix::scripting
         if (count)
             std::memcpy(gArrayBuffer.Data(), items, itemSize * count);
         return InteropArray{gArrayBuffer.Data(), i32(count)};
+    }
+
+    InteropArray PassStrings(const StringView* items, usize count)
+    {
+        usize bytes = 0;
+        for (usize i = 0; i < count; i++)
+            bytes += items[i].Size() + 1;
+        gStringsBytes.Resize(bytes > 0 ? bytes : 1);
+        gStrings.Resize(count);
+        usize at = 0;
+        for (usize i = 0; i < count; i++)
+        {
+            if (!items[i].Empty())
+                std::memcpy(gStringsBytes.Data() + at, items[i].Data(), items[i].Size());
+            gStringsBytes[at + items[i].Size()] = 0;
+            gStrings[i] = InteropString{gStringsBytes.Data() + at, i32(items[i].Size())};
+            at += items[i].Size() + 1;
+        }
+        return InteropArray{gStrings.Data(), i32(count)};
     }
 
     String StringFromUtf16(const char16_t* data, i32 size)

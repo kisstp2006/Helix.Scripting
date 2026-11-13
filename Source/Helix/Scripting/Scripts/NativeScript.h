@@ -26,6 +26,9 @@ namespace helix::scripting
         StringView module;
         StringView nameSpace;
         StringView name;
+        // The script base (HX_CLASS(ScriptBase)) the class derives from, by its registry name; the engine makes the
+        // class's objects as a class below that base's.
+        StringView scriptBase;
         u32 size = 0;
         u32 alignment = 0;
         // Makes an object in memory of the class's size and alignment; answers it as its root class's address.

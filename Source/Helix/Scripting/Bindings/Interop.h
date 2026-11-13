@@ -103,6 +103,8 @@ namespace helix::scripting
 
     InteropString PassString(StringView text);
     InteropArray PassArray(const void* items, usize itemSize, usize count);
+    // Strings handed out: an InteropArray of InteropString (UTF-8), valid until the thread's next such call.
+    InteropArray PassStrings(const StringView* items, usize count);
     // A string from managed code (UTF-16).
     String StringFromUtf16(const char16_t* data, i32 size);
 

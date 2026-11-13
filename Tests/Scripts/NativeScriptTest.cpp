@@ -36,6 +36,7 @@ HX_TEST(NativeScripts, ClassesReachTheHandler)
     c.module = "NativeScripts.Test";
     c.nameSpace = "Tests";
     c.name = "Probe";
+    c.scriptBase = "ProbeBase";
     c.size = sizeof(Probe);
     c.alignment = alignof(Probe);
     c.construct = [](void* m) -> void* { return new (m) Probe(); };
@@ -58,7 +59,7 @@ HX_TEST(NativeScripts, ClassesReachTheHandler)
     auto* p = static_cast<Probe*>(mine->construct(memory));
     mine->methods[0].call(p);
     mine->methods[1].callBool(p, true);
-    HX_CHECK(p->updates == 1 && p->focus && mine->executionOrder == -5 && mine->methods.Size() == 2);
+    HX_CHECK(p->updates == 1 && p->focus && mine->executionOrder == -5 && mine->methods.Size() == 2 && mine->scriptBase == StringView("ProbeBase"));
     UnregisterNativeScriptClasses("NativeScripts.Test");
     HX_CHECK(seen.removed.Size() == 1 && seen.removed[0] == "Probe");
     SetNativeScriptHandler(nullptr, nullptr);
