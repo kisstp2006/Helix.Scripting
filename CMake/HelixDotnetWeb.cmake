@@ -18,6 +18,13 @@ function(helix_scripting_web_executable target)
         CXX_LINKER_LAUNCHER "${CMAKE_COMMAND};-DPROPS=${props};-P;${HELIX_SCRIPTING_WEB_DIR}/CaptureWebLink.cmake;--")
 
     set(assemblies "$<TARGET_PROPERTY:${target},HELIX_DOTNET_ASSEMBLIES>")
+    # Tests and other checks link at their HELIX_WEB_LINK_OPTIMIZATION (helix_add_executable CHECK), applications at
+    # the SDK's release optimization.
+    get_target_property(link_flag ${target} HELIX_WEB_LINK_OPTIMIZATION)
+    set(link_optimization "")
+    if(link_flag)
+        set(link_optimization "    <EmccLinkOptimizationFlag>${link_flag}</EmccLinkOptimizationFlag>\n")
+    endif()
     set(r "$<ANGLE-R>")
     set(references "$<$<BOOL:${assemblies}>:    <Reference Include=\"$<JOIN:${assemblies},\" /${r}\n    <Reference Include=\">\" /${r}\n>")
     file(GENERATE OUTPUT "${project}" CONTENT
@@ -40,7 +47,7 @@ function(helix_scripting_web_executable target)
     <CompressionEnabled>false</CompressionEnabled>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-  </PropertyGroup>
+${link_optimization}  </PropertyGroup>
   <ItemGroup>
     <Compile Include=\"${scripting}/Source/Managed/Helix.Scripting.Browser/*.cs\" />
     <Compile Include=\"CallSignatures.g.cs\" />
@@ -53,7 +60,8 @@ ${references}  </ItemGroup>
   </PropertyGroup>
 </Project>
 ")
-    file(WRITE "${work}/main.mjs"
+    # Written only when its text changes: the publish depends on it.
+    file(CONFIGURE OUTPUT "${work}/main.mjs" @ONLY CONTENT
 "// Runs the web app in node: the program's arguments, its exit code. HELIX_MOUNTS=<folder>=<path>;... mounts folders
 // of the disk into the app's file system (NODEFS) before main.
 import { dotnet } from './_framework/dotnet.js';
