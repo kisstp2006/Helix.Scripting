@@ -6,7 +6,7 @@
 
 // C++ script classes: C++ classes deriving from a script base class (HX_CLASS(ScriptBase)) in a binary module. The
 // module's generated registration describes each one here: how its objects are made and copied, and its methods
-// without arguments or with one bool, by name and as direct calls (an engine finds its messages among them: Update,
+// without arguments or with one bool (or without arguments with a pointer result), by name and as direct calls (an engine finds its messages among them: Update,
 // OnApplicationFocus, ...). The engine takes the classes through the handler it sets; classes registered before the
 // handler reach it when it is set.
 namespace helix::scripting
@@ -14,9 +14,13 @@ namespace helix::scripting
     struct NativeScriptMethod
     {
         StringView name;
-        // One of the two: no arguments, or one bool.
+        // One of the three: no arguments, one bool, or no arguments and a pointer result.
         void (*call)(void* instance) = nullptr;
         void (*callBool)(void* instance, bool value) = nullptr;
+        // The result as the method declares it (a pointer to resultType); resultType is the pointee's name without its
+        // namespaces, so an engine checks what it takes (a factory method such as CreatePipeline).
+        void* (*callPointer)(void* instance) = nullptr;
+        StringView resultType;
     };
 
     struct NativeScriptClass

@@ -40,7 +40,8 @@ reach its members the same way.
 - Derives-from is a range test on depth first numbers over the bases; interfaces are searched along the bases.
 - The registry is changed on one thread at a time and can be read from any thread while it does not change.
 - Native script classes (`NativeScriptClass`): how an engine makes and copies objects of a C++ script class, its
-  methods by name, and its serialized fields through a transfer function over an opaque visitor (the engine gives it
+  methods by name (without arguments, with one bool, or without arguments answering a pointer with the pointee's name,
+  as a pipeline asset's `CreatePipeline`), and its serialized fields through a transfer function over an opaque visitor (the engine gives it
   Helix.Serialization's `DynamicVisitor`), so this library does not depend on a serialization library.
 
 - The .NET host finds the runtime itself (no nethost): the root it is given, `dotnet/` next to the executable,
