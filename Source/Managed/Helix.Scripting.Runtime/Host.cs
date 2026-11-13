@@ -126,9 +126,7 @@ namespace Helix.Scripting
         {
             try
             {
-                string file = Path.GetFullPath(Encoding.UTF8.GetString(path, size));
-                s_Engine.AddFolder(Path.GetDirectoryName(file));
-                Assembly a = s_Engine.LoadFromAssemblyPath(file);
+                Assembly a = LoadEngineAssembly(Encoding.UTF8.GetString(path, size));
                 int index = s_Assemblies.IndexOf(a);
                 if (index < 0)
                 {
@@ -142,6 +140,36 @@ namespace Helix.Scripting
             {
                 SetError(e.GetType().Name + ": " + e.Message);
                 return 1;
+            }
+        }
+
+        /// <summary>
+        /// An assembly by its path into the engine's load context (its folder joins the folders the context resolves
+        /// from); on the Web an assembly the app carries is taken by its name.
+        /// </summary>
+        public static Assembly LoadEngineAssembly(string path)
+        {
+            string file = Path.GetFullPath(path);
+            Assembly a = AppAssembly(file);
+            if (a != null)
+                return a;
+            s_Engine.AddFolder(Path.GetDirectoryName(file));
+            return s_Engine.LoadFromAssemblyPath(file);
+        }
+
+        // The Web's apps carry the engine's assemblies (built with them, so their native calls have wrappers): an
+        // assembly of the app is taken by name from the default context; elsewhere null.
+        static Assembly AppAssembly(string file)
+        {
+            if (!OperatingSystem.IsBrowser())
+                return null;
+            try
+            {
+                return AssemblyLoadContext.Default.LoadFromAssemblyName(new AssemblyName(Path.GetFileNameWithoutExtension(file)));
+            }
+            catch (FileNotFoundException)
+            {
+                return null;
             }
         }
 
@@ -335,6 +363,17 @@ namespace Helix.Scripting
         {
             if (name.Name == typeof(Host).Assembly.GetName().Name)
                 return null;
+            // On the Web the app's own assemblies stay in the default context.
+            if (OperatingSystem.IsBrowser())
+            {
+                try
+                {
+                    return Default.LoadFromAssemblyName(name);
+                }
+                catch (FileNotFoundException)
+                {
+                }
+            }
             foreach (string folder in _folders)
             {
                 string path = Path.Combine(folder, name.Name + ".dll");

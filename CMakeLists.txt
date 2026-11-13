@@ -26,20 +26,36 @@ if(HELIX_DOTNET)
         COMMENT "Building Helix.Scripting.Runtime")
     add_custom_target(helix_scripting_runtime DEPENDS "${runtime_dll}")
     set(HELIX_SCRIPTING_RUNTIME "${runtime_dll}" CACHE INTERNAL "")
+    # The Web's programs that run C# are web apps of the .NET runtime (helix_add_executable ... DOTNET).
+    if(HELIX_PLATFORM STREQUAL "web")
+        # The tool that declares the signatures of the apps' native function pointer calls (Tools/CallSignatures).
+        set(signatures_dir "${CMAKE_CURRENT_SOURCE_DIR}/Tools/CallSignatures")
+        set(signatures_dll "${scripting_managed_artifacts}/bin/CallSignatures/release/HelixCallSignatures.dll")
+        file(GLOB signatures_sources CONFIGURE_DEPENDS "${signatures_dir}/*.cs" "${signatures_dir}/*.csproj")
+        add_custom_command(
+            OUTPUT "${signatures_dll}"
+            COMMAND "${HELIX_DOTNET}" build "${signatures_dir}/CallSignatures.csproj" -c Release --artifacts-path "${scripting_managed_artifacts}" --nologo -v quiet
+            DEPENDS ${signatures_sources}
+            COMMENT "Building the call signature tool")
+        add_custom_target(helix_call_signatures DEPENDS "${signatures_dll}")
+        set(HELIX_CALL_SIGNATURES "${signatures_dll}" CACHE INTERNAL "")
+        include("${CMAKE_CURRENT_SOURCE_DIR}/CMake/HelixDotnetWeb.cmake")
+    endif()
 endif()
 
-helix_add_test_suite(helix_scripting_tests DEPS Helix::Scripting)
+helix_add_test_suite(helix_scripting_tests DOTNET DEPS Helix::Scripting)
 helix_add_benchmark_suite(helix_scripting_bench DEPS Helix::Scripting)
 
 # The host tests and benchmarks load a test assembly into the engine's load context (the desktop host).
 if(TARGET helix_scripting_runtime AND (TARGET helix_scripting_tests OR TARGET helix_scripting_bench) AND
-   (HELIX_PLATFORM STREQUAL "windows" OR HELIX_PLATFORM STREQUAL "linux"))
+   (HELIX_PLATFORM STREQUAL "windows" OR HELIX_PLATFORM STREQUAL "linux" OR HELIX_PLATFORM STREQUAL "web"))
     set(tests_dir "${CMAKE_CURRENT_SOURCE_DIR}/Tests/Managed")
     set(host_tests_dll "${scripting_managed_artifacts}/bin/Helix.Scripting.HostTests/release/Helix.Scripting.HostTests.dll")
+    set(host_tests_dependency_dll "${scripting_managed_artifacts}/bin/Helix.Scripting.HostTestsDependency/release/Helix.Scripting.HostTestsDependency.dll")
     file(GLOB_RECURSE host_tests_sources CONFIGURE_DEPENDS "${tests_dir}/*.cs" "${tests_dir}/*.csproj")
     list(FILTER host_tests_sources EXCLUDE REGEX "/(bin|obj)/")
     add_custom_command(
-        OUTPUT "${host_tests_dll}"
+        OUTPUT "${host_tests_dll}" "${host_tests_dependency_dll}"
         COMMAND "${HELIX_DOTNET}" build "${tests_dir}/HostTests/Helix.Scripting.HostTests.csproj" -c Release
                 --artifacts-path "${scripting_managed_artifacts}" --nologo -v quiet
         DEPENDS ${host_tests_sources} ${runtime_sources} "${runtime_dll}"
@@ -49,8 +65,19 @@ if(TARGET helix_scripting_runtime AND (TARGET helix_scripting_tests OR TARGET he
         if(TARGET ${target})
             add_dependencies(${target} helix_scripting_host_tests helix_scripting_runtime)
             target_compile_definitions(${target} PRIVATE "HX_TEST_RUNTIME_ASSEMBLY=\"${runtime_dll}\"" "HX_TEST_HOST_ASSEMBLY=\"${host_tests_dll}\"")
+            # On the Web the app carries them.
+            set_property(TARGET ${target} APPEND PROPERTY HELIX_DOTNET_ASSEMBLIES "${host_tests_dll}" "${host_tests_dependency_dll}")
         endif()
     endforeach()
+    if(HELIX_PLATFORM STREQUAL "web" AND TARGET helix_scripting_tests_web)
+        add_dependencies(helix_scripting_tests_web helix_scripting_host_tests)
+    endif()
+endif()
+# The host tests once more on the coreclr starter (the desktop's shared framework through coreclr_initialize, as
+# Android hosts it).
+if(TEST helix_scripting_tests AND (HELIX_PLATFORM STREQUAL "windows" OR HELIX_PLATFORM STREQUAL "linux"))
+    add_test(NAME helix_scripting_tests_coreclr COMMAND helix_scripting_tests --filter=Host.)
+    set_tests_properties(helix_scripting_tests_coreclr PROPERTIES ENVIRONMENT "HELIX_DOTNET_RUNTIME=coreclr")
 endif()
 if(TARGET helix_scripting_bench)
     target_include_directories(helix_scripting_bench PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Tests")
@@ -61,4 +88,8 @@ endif()
 if(TEST helix_scripting_tests AND HELIX_ENABLE_ASAN AND HELIX_PLATFORM STREQUAL "linux")
     set_tests_properties(helix_scripting_tests PROPERTIES
                          ENVIRONMENT "LSAN_OPTIONS=suppressions=${CMAKE_CURRENT_SOURCE_DIR}/Tests/Support/LeakSuppressions.txt")
+    # The run on the coreclr starter keeps its starter and takes the suppressions too.
+    if(TEST helix_scripting_tests_coreclr)
+        set_tests_properties(helix_scripting_tests_coreclr PROPERTIES ENVIRONMENT "HELIX_DOTNET_RUNTIME=coreclr;LSAN_OPTIONS=suppressions=${CMAKE_CURRENT_SOURCE_DIR}/Tests/Support/LeakSuppressions.txt")
+    endif()
 endif()

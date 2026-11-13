@@ -2,6 +2,7 @@
 
 #include <Helix/Core/Logging/Log.h>
 #include <Helix/Platform/IO/FileSystem.h>
+#include <Helix/Platform/System/Process.h>
 #include <Helix/Scripting/Bindings/Interop.h>
 #include <Helix/Testing/Test.h>
 
@@ -40,15 +41,20 @@ HX_TEST(Host, StartsTheRuntimeFromItsRoots)
     }
     Array<String> roots;
     FindDotnetRoots(roots);
-    HX_CHECK(roots.Size() >= 3);
+    // The Web's runtime is the app's; elsewhere the folders next to the program, of the environment and the defaults.
+    HX_CHECK(roots.Size() >= (HX_PLATFORM_WEB ? 1u : 3u));
     String error;
     auto start = std::chrono::steady_clock::now();
     bool started = StartHost(error);
     f64 ms = std::chrono::duration<f64, std::milli>(std::chrono::steady_clock::now() - start).count();
     HX_REQUIRE(started);
     if (ms > 5)
-        std::printf("runtime and managed side started in %.1f ms from %.*s\n", ms, int(DotnetHost::DotnetRoot().Size()), DotnetHost::DotnetRoot().Data());
-    HX_CHECK(DotnetHost::IsRunning() && !DotnetHost::DotnetRoot().Empty());
+        std::printf("runtime (%.*s) and managed side started in %.1f ms from %.*s\n", int(DotnetHost::Runtime().Size()), DotnetHost::Runtime().Data(), ms,
+                    int(DotnetHost::DotnetRoot().Size()), DotnetHost::DotnetRoot().Data());
+    HX_CHECK(DotnetHost::IsRunning() && !DotnetHost::DotnetRoot().Empty() && !DotnetHost::Runtime().Empty());
+    String wanted;
+    if (platform::ReadEnvironment("HELIX_DOTNET_RUNTIME", wanted) && !wanted.Empty())
+        HX_CHECK(DotnetHost::Runtime() == wanted.View());
     HX_CHECK(error.Empty());
 }
 

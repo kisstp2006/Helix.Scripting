@@ -66,7 +66,9 @@ namespace Helix.Scripting.HostTests
         {
             AssemblyLoadContext context = AssemblyLoadContext.GetLoadContext(typeof(Probe).Assembly);
             bool sameRuntime = AssemblyLoadContext.GetLoadContext(typeof(Host).Assembly) == AssemblyLoadContext.Default;
-            return context == Host.Engine && context.Name == "HelixEngine" && sameRuntime ? Doubler.Twice(21) : 0;
+            // On the Web the app carries this assembly: it is the default context's.
+            bool inContext = OperatingSystem.IsBrowser() ? context == AssemblyLoadContext.Default : context == Host.Engine && context.Name == "HelixEngine";
+            return inContext && sameRuntime ? Doubler.Twice(21) : 0;
         }
 
         [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
