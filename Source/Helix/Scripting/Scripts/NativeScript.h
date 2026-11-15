@@ -35,10 +35,18 @@ namespace helix::scripting
         StringView scriptBase;
         u32 size = 0;
         u32 alignment = 0;
-        // Makes an object in memory of the class's size and alignment; answers it as its root class's address.
+        // Makes an object in memory of the class's size and alignment; answers it as its root class's address. Null
+        // for a class abstract in C++ (only the C# script classes below it are made, as its derived class).
         void* (*construct)(void* memory) = nullptr;
         // A copy of an object (given as its root class's address) in memory; answers the copy the same way.
         void* (*clone)(void* memory, const void* original) = nullptr;
+        // For a class with tagged virtual functions: the C++ subclass objects of C# classes deriving from it are made
+        // as (Bindgen's), whose virtual functions call the C# overrides; its size, alignment, construct and clone as
+        // above (null without one).
+        u32 derivedSize = 0;
+        u32 derivedAlignment = 0;
+        void* (*constructDerived)(void* memory) = nullptr;
+        void* (*cloneDerived)(void* memory, const void* original) = nullptr;
         Span<const NativeScriptMethod> methods;
         // DefaultExecutionOrder (the tag argument Order).
         i32 executionOrder = 0;

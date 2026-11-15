@@ -42,7 +42,9 @@ reach its members the same way.
 - Native script classes (`NativeScriptClass`): how an engine makes and copies objects of a C++ script class, its
   methods by name (without arguments, with one bool, or without arguments answering a pointer with the pointee's name,
   as a pipeline asset's `CreatePipeline`), and its serialized fields through a transfer function over an opaque visitor (the engine gives it
-  Helix.Serialization's `DynamicVisitor`), so this library does not depend on a serialization library.
+  Helix.Serialization's `DynamicVisitor`), so this library does not depend on a serialization library. A class with
+  tagged virtual functions also hands over its derived class (size, construct, clone), as which the objects of C#
+  script classes below it are made; a class abstract in C++ has no construct function of its own.
 
 - The .NET host finds the runtime itself (no nethost): the root it is given, `dotnet/` next to the executable,
   DOTNET_ROOT, HELIX_DOTNET_ROOT, the default install folders; the first with hostfxr and the framework that
