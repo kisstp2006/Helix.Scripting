@@ -299,3 +299,23 @@ HX_TEST(Types, ASecondBuilderExtendsAType)
     HX_CHECK(Attributes(pair, b->attributes).Size() == 1 && Attributes(pair)[0].type == attribute);
     UnloadModule(module);
 }
+
+HX_TEST(Types, TypeOfFindsTypesBoundInAnotherBinary)
+{
+    // Another binary's slot is empty (an inline variable per binary): TypeOf takes the type from the registry by the
+    // C++ type's key, and again once the type went.
+    TypeId hero;
+    {
+        SampleTypes s;
+        hero = s.hero;
+        detail::TypeSlot<Hero>::id = TypeId();
+        HX_CHECK(TypeOf<Hero>() == s.hero && detail::TypeSlot<Hero>::foreign);
+        HX_CHECK(TypeOf<const Hero>() == s.hero);
+    }
+    HX_CHECK(!TypeOf<Hero>().IsValid());
+    SampleTypes again;
+    HX_CHECK(TypeOf<Hero>() == again.hero && !detail::TypeSlot<Hero>::foreign);
+    detail::TypeSlot<Hero>::id = hero;
+    detail::TypeSlot<Hero>::foreign = true;
+    HX_CHECK(TypeOf<Hero>() == again.hero);
+}

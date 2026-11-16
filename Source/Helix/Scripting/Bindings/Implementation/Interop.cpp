@@ -6,6 +6,7 @@
 #include <Helix/Core/Logging/Log.h>
 
 #include <cstring>
+#include <mutex>
 
 namespace helix::scripting
 {
@@ -53,6 +54,60 @@ namespace helix::scripting
     }
 
     void SetManagedHandleRelease(void (*release)(u64 handle)) { gRelease = release; }
+
+    namespace
+    {
+        u64 (*gRetain)(u64 handle) = nullptr;
+
+        struct Collected
+        {
+            void (*destroy)(u64 id) = nullptr;
+            u64 id = 0;
+        };
+
+        struct ReleaseQueue
+        {
+            std::mutex lock;
+            Array<Collected> items;
+        };
+
+        ReleaseQueue& Queue()
+        {
+            static ReleaseQueue q;
+            return q;
+        }
+    }
+
+    void SetManagedHandleRetain(u64 (*retain)(u64 handle)) { gRetain = retain; }
+
+    u64 RetainWrapper(u64 handle) { return handle && gRetain ? gRetain(handle) : 0; }
+
+    void QueueRelease(void (*destroy)(u64 id), u64 id)
+    {
+        if (!destroy || !id)
+            return;
+        ReleaseQueue& q = Queue();
+        std::lock_guard<std::mutex> guard(q.lock);
+        q.items.Push(Collected{destroy, id});
+    }
+
+    void ReleaseCollected()
+    {
+        // Deleting an object can collect or queue others: taken until the queue stays empty.
+        for (;;)
+        {
+            Array<Collected> now;
+            {
+                ReleaseQueue& q = Queue();
+                std::lock_guard<std::mutex> guard(q.lock);
+                if (q.items.Empty())
+                    return;
+                std::swap(now, q.items);
+            }
+            for (const Collected& c : now)
+                c.destroy(c.id);
+        }
+    }
 
     void ReleaseWrapper(u64& slot)
     {

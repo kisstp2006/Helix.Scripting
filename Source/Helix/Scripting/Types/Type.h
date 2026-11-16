@@ -250,11 +250,31 @@ namespace helix::scripting
     // ------------------------------------------------------------------------------------------------- C++ types
     namespace detail
     {
+        // Each binary of the process has its own slot of a type (an inline variable is per binary on Windows): the
+        // binary that binds the type fills its own and the process's registry by the type's key; another binary takes
+        // it from the registry at its first TypeOf (and again after the type went, a module unloaded).
         template <class T>
         struct TypeSlot
         {
             static inline TypeId id;
+            static inline bool foreign = false;
         };
+
+        // The key of a C++ type, the same in every binary of the process (one compiler builds them): the name the
+        // compiler gives this function for the type.
+        template <class T>
+        constexpr const char* NativeKey()
+        {
+#if defined(_MSC_VER) && !defined(__clang__)
+            return __FUNCSIG__;
+#else
+            return __PRETTY_FUNCTION__;
+#endif
+        }
+
+        void RegisterNativeType(StringView key, TypeId type);
+        TypeId FindNativeType(StringView key);
+        bool IsLiveType(TypeId type);
     }
 
     // The type registered for a C++ type (TypeBuilder::Native), or invalid.
@@ -291,13 +311,24 @@ namespace helix::scripting
         else if constexpr (std::is_same_v<U, TypeId>)
             return TypeOfPrimitive(Primitive::Type);
         else
-            return detail::TypeSlot<U>::id;
+        {
+            using Slot = detail::TypeSlot<U>;
+            if (!Slot::id.IsValid() || (Slot::foreign && !detail::IsLiveType(Slot::id)))
+            {
+                Slot::id = detail::FindNativeType(detail::NativeKey<U>());
+                Slot::foreign = Slot::id.IsValid();
+            }
+            return Slot::id;
+        }
     }
 
     // Makes the type of a C++ type known to TypeOf<T>.
     template <class T>
     void BindNativeType(TypeId type)
     {
-        detail::TypeSlot<std::remove_cv_t<T>>::id = type;
+        using U = std::remove_cv_t<T>;
+        detail::TypeSlot<U>::id = type;
+        detail::TypeSlot<U>::foreign = false;
+        detail::RegisterNativeType(detail::NativeKey<U>(), type);
     }
 }

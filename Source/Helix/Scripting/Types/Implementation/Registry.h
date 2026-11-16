@@ -51,6 +51,8 @@ namespace helix::scripting::detail
         HashMap<u64, u32> byName;
         // Element slot to its array type's slot.
         HashMap<u32, u32> arrays;
+        // The hash of a C++ type's key (detail::NativeKey) to the type bound for it.
+        HashMap<u64, TypeId> native;
         ModuleId builtin;
         std::atomic<bool> ordersDirty{true};
         platform::Mutex ordersMutex;

@@ -35,6 +35,14 @@ namespace helix::scripting
     void ReleaseWrapper(u64& slot);
     // Registered by the C# runtime when it loads a module's bindings.
     void SetManagedHandleRelease(void (*release)(u64 handle));
+    // A strong GC handle of the C# object a wrapper handle names (0 when it names none or it was collected): C++ code
+    // that holds an object a C# object owns keeps it alive with it and lets it go with ReleaseWrapper.
+    u64 RetainWrapper(u64 handle);
+    void SetManagedHandleRetain(u64 (*retain)(u64 handle));
+    // Objects owned by their C# object (HX_CLASS(Root, Owned)) whose C# object was collected: the finalizer queues
+    // the deletion (from any thread) and ReleaseCollected deletes them on the main thread (the engine once a frame).
+    void QueueRelease(void (*destroy)(u64 id), u64 id);
+    void ReleaseCollected();
 
     // A function with a user pointer: what C++ gives C# for an event handler or a delegate argument.
     template <class Signature>

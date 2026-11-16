@@ -395,6 +395,20 @@ namespace helix::scripting
         }
     }
 
+    namespace detail
+    {
+        void RegisterNativeType(StringView key, TypeId type) { R().native.Set(Fnv1a64(key.Data(), key.Size()), type); }
+
+        TypeId FindNativeType(StringView key)
+        {
+            RunProviders();
+            const TypeId* t = R().native.Find(Fnv1a64(key.Data(), key.Size()));
+            return t && GetType(*t) ? *t : TypeId();
+        }
+
+        bool IsLiveType(TypeId type) { return GetType(type) != nullptr; }
+    }
+
     TypeId FindType(StringView fullName)
     {
         RunProviders();
