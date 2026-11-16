@@ -21,9 +21,10 @@ reach its members the same way.
 | `Tools/CallSignatures/` | `HelixCallSignatures`: the native function pointer calls of a web app's assemblies, declared for the build's interpreter wrappers, and the Web's limits checked |
 | `Source/Managed/Helix.Scripting.Runtime/` | Its managed side (C#): `Host.Initialize` and the entry points native code calls, the engine's `AssemblyLoadContext`, `Host.Log` / `Report` / `ToNative` / `FindExport` / `NativeFunctions` for managed code |
 | `Source/Helix/Scripting/Bindings/ObjectRef.h` | `ObjectRef<Root, T>`: a native object by its id with the reference's null semantics in C++ (`if (ref)`, `ref == nullptr` once destroyed) |
-| `Source/Helix/Scripting/Bindings/ScriptApi.h` | What the generated C++ script API stands on: `ScriptHandle` (an object's id), `ApiRef` / `ApiAs` / `ApiTypeOf` for generic members, `ApiString16`, the module's function table by index |
+| `Source/Helix/Scripting/Bindings/ScriptApi.h` | What the generated C++ script API stands on: `ScriptHandle` (an object's id; a class made over an object adopts its id in its constructor), `HandleObject<T>`, `ApiRef` / `ApiAs` / `ApiTypeOf` for generic members, `ApiString16`, the module's function table by index |
 | `Source/Helix/Scripting/Bindings/Marshal.h` | Values between C++ and Variants for generated invokers (objects with their dynamic type, arrays) |
 | `Source/Helix/Scripting/Scripts/NativeScript.h` | `NativeScriptClass`, `NativeScriptMethod`, `RegisterNativeScriptClass`: the C++ script classes generated registration hands to the engine (`SetNativeScriptHandler`) |
+| `Source/Helix/Scripting/Scripts/NativeHandleClass.h` | `NativeHandleClass`: C++ classes of a game module deriving from another module's API handle (the UI's `Element`), with their tags and tagged members set from text; the base's module takes them (`SetNativeHandleHandler`) and makes their objects over its own |
 
 ## Design
 

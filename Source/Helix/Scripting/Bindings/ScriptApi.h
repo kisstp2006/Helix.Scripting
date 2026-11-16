@@ -2,6 +2,7 @@
 
 #include <Helix/Scripting/Bindings/Interop.h>
 #include <Helix/Scripting/Bindings/ObjectRef.h>
+#include <Helix/Scripting/Scripts/NativeHandleClass.h>
 #include <Helix/Scripting/Types/TypeBuilder.h>
 
 #include <bit>
@@ -14,14 +15,55 @@
 namespace helix::scripting
 {
     // The base of the value handles: the object's id (0 is null). Copies name the same object.
+    namespace detail
+    {
+        // The id a handle made next takes: a class of a game module deriving from a handle is made over an object
+        // (NativeHandleClass), and its handle refers to that object already in its constructor. Per module and thread:
+        // the module's generated registration sets it right before it makes the object.
+        inline u64& AdoptedHandleId()
+        {
+            thread_local u64 id = 0;
+            return id;
+        }
+    }
+
     class ScriptHandle
     {
     public:
+        ScriptHandle() : id_(Adopted()) {}
+        ScriptHandle(const ScriptHandle& other) = default;
+        ScriptHandle& operator=(const ScriptHandle& other) = default;
+
         u64 HxId() const { return id_; }
 
     protected:
         u64 id_ = 0;
+
+    private:
+        static u64 Adopted()
+        {
+            u64& pending = detail::AdoptedHandleId();
+            u64 id = pending;
+            pending = 0;
+            return id;
+        }
     };
+
+    // The address that names a class of a game module deriving from a handle (its registration's key).
+    template <class T>
+    const void* HandleClassKey()
+    {
+        static const char key = 0;
+        return &key;
+    }
+
+    // The object of a class T of a game module deriving from a handle that the handle's module made over the handle's
+    // object (a C++ element type's object of an element), null when it has none of T.
+    template <class T>
+    T* HandleObject(const ScriptHandle& handle)
+    {
+        return static_cast<T*>(FindNativeHandleObject(T::HxApiName(), handle.HxId(), HandleClassKey<T>()));
+    }
 
     template <class T>
     concept ApiHandle = std::is_base_of_v<ScriptHandle, T>;
