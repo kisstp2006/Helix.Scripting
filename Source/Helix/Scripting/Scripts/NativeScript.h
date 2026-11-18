@@ -53,6 +53,8 @@ namespace helix::scripting
         // The class's serialized fields (its base script classes' first) through a visitor of fields known at run time
         // (Helix.Serialization's DynamicVisitor); the object as its root class's address. Null without fields.
         void (*transfer)(void* instance, void* visitor) = nullptr;
+        // The component types adding it adds first when its GameObject has none (RequireComponent, its bases' too).
+        Span<const TypeId> required;
     };
 
     // The class and its methods are copied; names stay the module's (it lives as long as the class is registered).
