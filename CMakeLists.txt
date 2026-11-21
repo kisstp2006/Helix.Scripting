@@ -75,9 +75,8 @@ if(TARGET helix_scripting_runtime AND (TARGET helix_scripting_tests OR TARGET he
 endif()
 # The host tests once more on the coreclr starter (the desktop's shared framework through coreclr_initialize, as
 # Android hosts it).
-if(TEST helix_scripting_tests AND (HELIX_PLATFORM STREQUAL "windows" OR HELIX_PLATFORM STREQUAL "linux"))
-    add_test(NAME helix_scripting_tests_coreclr COMMAND helix_scripting_tests --filter=Host.)
-    set_tests_properties(helix_scripting_tests_coreclr PROPERTIES ENVIRONMENT "HELIX_DOTNET_RUNTIME=coreclr")
+if(TARGET helix_scripting_tests AND (HELIX_PLATFORM STREQUAL "windows" OR HELIX_PLATFORM STREQUAL "linux"))
+    helix_add_test_run(helix_scripting_tests_coreclr PROGRAM helix_scripting_tests FILTER Host. ENVIRONMENT HELIX_DOTNET_RUNTIME=coreclr)
 endif()
 if(TARGET helix_scripting_bench)
     target_include_directories(helix_scripting_bench PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Tests")
@@ -85,11 +84,8 @@ endif()
 
 # The .NET runtime is never unloaded: what it allocated is still there when the process ends (its own memory, not
 # leaks of Helix), so LeakSanitizer is told about its modules.
-if(TEST helix_scripting_tests AND HELIX_ENABLE_ASAN AND HELIX_PLATFORM STREQUAL "linux")
-    set_tests_properties(helix_scripting_tests PROPERTIES
-                         ENVIRONMENT "LSAN_OPTIONS=suppressions=${CMAKE_CURRENT_SOURCE_DIR}/Tests/Support/LeakSuppressions.txt")
-    # The run on the coreclr starter keeps its starter and takes the suppressions too.
-    if(TEST helix_scripting_tests_coreclr)
-        set_tests_properties(helix_scripting_tests_coreclr PROPERTIES ENVIRONMENT "HELIX_DOTNET_RUNTIME=coreclr;LSAN_OPTIONS=suppressions=${CMAKE_CURRENT_SOURCE_DIR}/Tests/Support/LeakSuppressions.txt")
-    endif()
+if(TARGET helix_scripting_tests AND HELIX_ENABLE_ASAN AND HELIX_PLATFORM STREQUAL "linux")
+    foreach(run helix_scripting_tests helix_scripting_tests_coreclr)
+        helix_add_test_run_environment(${run} "LSAN_OPTIONS=suppressions=${CMAKE_CURRENT_SOURCE_DIR}/Tests/Support/LeakSuppressions.txt")
+    endforeach()
 endif()
